@@ -437,6 +437,24 @@ func (s *PublishedStorageSuite) TestReadLinkMetadataKeyIsCaseInsensitive(c *C) {
 	c.Check(link, Equals, "a/b")
 }
 
+func (s *PublishedStorageSuite) TestReadLinkOnPlainObject(c *C) {
+	// An object that is not a link has no SymLink metadata, and ReadLink
+	// returns an empty string with a nil error rather than failing.
+	// packageIndexByHash relies on that: it calls ReadLink on a path it has
+	// only just confirmed exists, and treats an error as "leave it alone".
+	s.PutFile(c, "a/plain", []byte("test"))
+
+	link, err := s.storage.ReadLink("a/plain")
+	c.Check(err, IsNil)
+	c.Check(link, Equals, "")
+
+	// A HeadObject that fails is an error, not an empty link. The two are
+	// distinguishable so a caller can tell "this is not a link" from "I could
+	// not find out".
+	_, err = s.noSuchBucketStorage.ReadLink("a/plain")
+	c.Check(err, NotNil)
+}
+
 func (s *PublishedStorageSuite) TestFileExists(c *C) {
 	s.PutFile(c, "a/b", []byte("test"))
 
